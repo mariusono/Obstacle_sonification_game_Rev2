@@ -10,24 +10,68 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
 
-    <script src="utils.js"></script>
-
-    <script src="droneSonification.js"></script>
-    <script src="samplerLoopSonification.js"></script>
+    <!-- Add mathjs library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.1/math.js"></script>
 
 
+    <!-- Add utility functions -->
+    <script defer src="utils.js"></script>
+
+    <!-- Add sonification classes -->
+    <script defer src="synthLoopSonification.js"></script>
+    <script defer src="droneSonification.js"></script>
+    <script defer src="samplerLoopSonification.js"></script>
     <!-- Add tone.js script -->
-    <script src="script_tone_js.js"></script>
+    <script defer src="script_tone_js.js"></script>
+    <!-- Add websocket script -->
+    <script defer src="script.js"></script>
+
 
 </head>
 
 <button id="button_1">Start Audio!</button>
 <button id="button_2">Stop Audio!</button>
 
-<body>
-    <!-- Add websocket script -->
-    <script src="script.js"></script>
-</body>
+<br>
+
+<label class="switch">
+    Play all sound sources at once <input type="checkbox" id="checkbox_sounds" checked>
+    <span class="slider"></span>
+</label>
+
+
+<br>
+
+
+<!-- <h2>Global Volume</h2> -->
+Gain <i id='Gain'></i>
+<input id='sliderInterval' type="range" min="0" max="10000" value="4500" oninput="setGain(this.value)"><br>
+
+Interval Sounds <i id='Interval'></i>
+<!-- <input id='sliderInterval' type="range" min="0" max="10000" value="1837" oninput="setLoopTime(this.value)"><br> -->
+<input id='sliderInterval' type="range" min="0" max="10000" value="0" oninput="setLoopTime(this.value)"><br>
+
+Silence Interval (percentage) <i id='Silence'></i>
+<input id='sliderInterval' type="range" min="0" max="10000" value="1010" oninput="setSilenceTime(this.value)"><br>
+
+
+Obstacle Limit Distance <i id='ObstLimitDist'></i>
+<input id='sliderInterval' type="range" min="0" max="10000" value="2858" oninput="setObstacle_Limit_Dist(this.value)"><br>
+
+Wall Limit Distance <i id='WallLimitDist'></i>
+<input id='sliderInterval' type="range" min="0" max="10000" value="2000" oninput="setWall_Limit_Dist(this.value)"><br>
+
+Exp Mapping Fac Obstacles <i id='ExpMapFact_Obstacle'></i>
+<input id='sliderInterval' type="range" min="0" max="10000" value="5330" oninput="setExpMapFactor_PlaybackRate(this.value)"><br>
+
+Exp Mapping Fac Walls <i id='ExpMapFact_Wall'></i>
+<input id='sliderInterval' type="range" min="0" max="10000" value="5330" oninput="setExpMapFactor_Harmonicity(this.value)"><br>
+
+Speed <i id='PlayerSpeed'></i>
+<input id='sliderInterval' type="range" min="0" max="10000" value="5330" oninput="setPlayerSpeed(this.value)"><br>
+
+Rotation Speed <i id='PlayerRotation'></i>
+<input id='sliderInterval' type="range" min="0" max="10000" value="5330" oninput="setPlayerRotationSpeed(this.value)"><br>
 
 
 </html>
