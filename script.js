@@ -22,22 +22,31 @@ walls['unique_id'] = [];
 let noOfWalls = 4;
 
 
+let minDistance = 1000;
+
+
 // FLAGS
 let flagUseSynthLoop = true;
 let flagUseSampleLoop = false;
 let flagSonifyObstacles  = true;
 let flagSonifyWalls  = true;
+let flagDanger = false;
 
 // Limit distances
 let wallLimitDistance = 0.75;
 let obstacleLimitDistance = 1.2;
+let criticalDistance = 0.7;
 
 // Exp mapping factors
 let expMappingFactor_playbackRate = 5.03165;
 let expMappingFactor_harmonicity = 5.03165;
 
-setWall_Limit_Dist(1000); // this is equiv to 0.75..
-setObstacle_Limit_Dist(2000); // this is equiv to 1.2..
+// setWall_Limit_Dist(1000); // this is equiv to 0.75..
+// setObstacle_Limit_Dist(2000); // this is equiv to 1.2..
+
+setWall_Limit_Dist(10000); 
+setObstacle_Limit_Dist(10000); 
+
 setPlayerSpeed(2500); // this is equiv to 0.85..
 setPlayerRotationSpeed(6500);
 setExpMapFactor_PlaybackRate(3350);
@@ -105,8 +114,8 @@ function setPlayerRotationSpeed(v) {
 
 // Prep doSonification 
 let unique_ids_playing = [];
-const baseNotePossibilities = [392,440]
-const baseNotePossibilities_drone = [55, 75, 110,155.56,196]
+let baseNotePossibilities = [392,440,220];
+let baseNotePossibilities_drone = [55, 75, 110,155.56,196];
 
 // let audioSamples_array = ["glass_1.wav",
 //                           "glass_2.wav",
@@ -187,6 +196,11 @@ function doSonification(received_msg) {
                     let baseNote = baseNotePossibilities[randomNoteIdx];
                     let notePattern = [baseNote]; 
 
+                    baseNotePossibilities.splice(randomNoteIdx)
+                    if (baseNotePossibilities.length == 0){ // if you sampled all the sounds, remake the original array.. 
+                        baseNotePossibilities = [392,440,220];           
+                    }
+
                     // console.log('NOTE IS + ', notePattern);
 
                     if (!sonifiedObjects.hasOwnProperty(unique_id)) { // only create a new sonification if it hasn't already been created
@@ -201,6 +215,12 @@ function doSonification(received_msg) {
 
                     let randomNoteIdx_sample = Math.floor(0 + Math.random() * (audioSamples_array.length - 0));
                     let fileName = audioSamples_array[randomNoteIdx_sample];
+                    audioSamples_array.splice(randomNoteIdx_sample); // remove the sampled index, so the next sample is not the same.
+                    
+                    if (audioSamples_array.length == 0){ // if you sampled all the sounds, remake the original array.. 
+                         audioSamples_array = ["glass_1.wav","knock.wav"];           
+                    }
+
                     // let fileName = "glass_1.wav";
                     // let urlName = "https://mariusono.github.io/Vis-a-Vis/audio_files/";
                     let noteVal = 440;
@@ -309,7 +329,14 @@ function doSonification(received_msg) {
                 }
                 else if (distance_comp <= obstacleLimitDistance && unique_ids_current.includes(unique_id)){
                     sonifiedObjects[unique_id].playingFlag = true;
-                }                
+                }        
+                // add switch between playing sounds in a loop and playing all sounds if their respective objects are closer than a criticalDistance meteers
+                if (distance_comp < criticalDistance && unique_ids_current.includes(unique_id)){ // just some very large value here but this can be a failsafe thing about the radius of the human workspace.. 
+                    flagAllSounds = true;
+                    flagAllSounds_reset = true;
+                    flagDanger = true;
+                    sonifiedObjects[unique_id].playingFlag = true;
+                }                       
             }else{
                 sonifiedObjects[unique_id].playingFlag = false;
             }
@@ -323,6 +350,12 @@ function doSonification(received_msg) {
             // update harmonicity.. 
             sonifiedObjects[unique_id].expMappingFactor_harmonicity = expMappingFactor_harmonicity;   
             sonifiedObjects[unique_id].setHarmonicity(distance_comp, [0.2, wallLimitDistance]);
+            // override harmonicity to 1.. 
+            sonifiedObjects[unique_id].valHarmonicity = 1;
+            sonifiedObjects[unique_id].oscillators.forEach((osc, i) => {
+                // osc.frequency.rampTo(this.baseFreq * i * this.valHarmonicity, 0.2);
+                osc.frequency.rampTo(sonifiedObjects[unique_id].baseFreq * i * sonifiedObjects[unique_id].valHarmonicity, 0.1); // ramp over 0.1 seconds.. 
+            });
             sonifiedObjects[unique_id].setRoomSize(distance_comp, [0.3, 1.0]);
 
             if (flagSonifyWalls){
@@ -333,6 +366,13 @@ function doSonification(received_msg) {
                 else if (distance_comp <= wallLimitDistance && unique_ids_current.includes(unique_id)){
                     sonifiedObjects[unique_id].playingFlag = true;
                 }
+                // add switch between playing sounds in a loop and playing all sounds if their respective objects are closer than a critical distance meteers
+                if (distance_comp < criticalDistance && unique_ids_current.includes(unique_id)){ // just some very large value here but this can be a failsafe thing about the radius of the human workspace.. 
+                    flagAllSounds = true;
+                    flagAllSounds_reset = true;
+                    flagDanger = true;
+                    sonifiedObjects[unique_id].playingFlag = true;
+                }   
             }else{
                 sonifiedObjects[unique_id].playingFlag = false;
                 // console.log('HERE!');
@@ -363,16 +403,48 @@ function doSonification(received_msg) {
                 else if (distance_comp <= obstacleLimitDistance && unique_ids_current.includes(unique_id)){
                     sonifiedObjects[unique_id].playingFlag = true;
                 }  
+                // add switch between playing sounds in a loop and playing all sounds if their respective objects are closer than a critical distance meteers
+                if (distance_comp < criticalDistance && unique_ids_current.includes(unique_id)){ // just some very large value here but this can be a failsafe thing about the radius of the human workspace.. 
+                    flagAllSounds = true;
+                    flagAllSounds_reset = true;
+                    flagDanger = true;
+                    sonifiedObjects[unique_id].playingFlag = true;
+                }   
             }else{
                 sonifiedObjects[unique_id].playingFlag = false;
             }
         }
+
+        let sonifiedObjects_keys = Object.keys(sonifiedObjects);
+
+        if (flagDanger){
+            for (let i = 0; i<sonifiedObjects_keys.length;i++)
+            {
+                if (sonifiedObjects[sonifiedObjects_keys[i]].distance > criticalDistance)
+                {
+                    sonifiedObjects[sonifiedObjects_keys[i]].playingFlag = false;
+                }
+            }
+        }
+
+        let distanceArray = [];
+        for (let i = 0; i<sonifiedObjects_keys.length;i++)
+        {
+            distanceArray[i] = sonifiedObjects[sonifiedObjects_keys[i]].distance;
+        }
+        minDistance = Math.min(...distanceArray);
+        if (minDistance > criticalDistance){
+            flagAllSounds = false;
+            flagAllSounds_reset = true;
+            flagDanger = false;
+        }
+
     }
 }
 
 
 
-// CANVAS FINALLY STARTS! 
+// GRAPHICS STUFF CANVAS FINALLY STARTS! 
 
 
 function setup() {
@@ -380,29 +452,6 @@ function setup() {
     // player = new Player(width / 2, height / 2, squareSize);
     player = new Player(canvasWidth * Math.random(), canvasHeight * Math.random(), squareSize);
 
-    // // Create a slider for controlling speed
-    // speedSlider = createSlider(1, 20, mapMetersToPixels(playerSpeed,6,1000)/fr); // Min speed = 1, Max speed = 10, Initial speed = 3
-    // speedSlider.position(20, height + pixels_under_canvas + slider_pixel_offset * 0); // Position the slider beneath the canvas
-    // Create a label for the slider
-    // speedLabel = createP('Speed Control:');
-    // speedLabel.position(20, height + pixels_under_canvas - slider_label_pixel_offset + slider_label_pixel_offset * 0); // Position the label above the slider
-
-    // // Create a slider 
-    // rotationSpeedSlider = createSlider(0.01, 0.15, 0.1,0.001); // Min speed = 1, Max speed = 10, Initial speed = 3
-    // rotationSpeedSlider.position(20, height + pixels_under_canvas + slider_pixel_offset * 1); // Position the slider beneath the canvas
-    // // Create a label for the slider
-    // // rotationSpeedLabel = createP('Rotation Speed Control:');
-    // // rotationSpeedLabel.position(20, height + slider_label_pixel_offset + slider_label_pixel_offset * 1); // Position the label above the slider
-
-
-    // for (let iObj = 0; iObj<noObjects;iObj++){
-    //     // Create a slider for controlling size of Object 1
-    //     sizeSliders.push(createSlider(1, 100, 30, 1)); // Min size = 1, Max size = 100, Initial size = 30, Interval = 1
-    //     sizeSliders[iObj].position(20, height + pixels_under_canvas + slider_pixel_offset * (5+iObj)); // Position the slider beneath the canvas
-    //     // Create a label for the slider
-    //     // sizeLabels.push(createP('Size Control Obj '+(iObj+1) + ':'));
-    //     // sizeLabels[iObj].position(20, height + pixels_under_canvas + slider_pixel_offset  * (3+iObj) - slider_label_pixel_offset + slider_label_pixel_offset); // Position the label above the slider
-    // }
 
 
     // Create random objects (circle, square, triangle)
@@ -446,7 +495,7 @@ function setup() {
 }
 
 
-
+// This simulates the same type of message as from the real-time video analysis system. Empty now but will be built up.
 let sonificationMessage = {}; 
 let sonificationMessage_string = ''; 
 
