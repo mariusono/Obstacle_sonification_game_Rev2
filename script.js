@@ -22,6 +22,9 @@ walls['unique_id'] = [];
 let noOfWalls = 4;
 
 
+let meterBaseline = 6;
+let pixelBaseline = 1000;
+
 let minDistance = 1000;
 
 
@@ -46,6 +49,7 @@ let expMappingFactor_harmonicity = 5.03165;
 
 setWall_Limit_Dist(10000); 
 setObstacle_Limit_Dist(10000); 
+setCritical_Limit_Dist(1872); // this is equivalent to 0.6
 
 setPlayerSpeed(2500); // this is equiv to 0.85..
 setPlayerRotationSpeed(6500);
@@ -55,10 +59,10 @@ setExpMapFactor_Harmonicity(3350);
 // let objects_xArray = [width/2, 3*width/4,width/4];
 // let objects_yArray = [height/2, height/4,3*height/4];
 
-let objects_xArray = [mapMetersToPixels(0.5,6,1000) + canvasWidth/2, 
-                     -mapMetersToPixels(1.75,6,1000) + canvasWidth/2];
-let objects_yArray = [mapMetersToPixels(0.0,6,1000) + canvasHeight/2, 
-                     mapMetersToPixels(0.45,6,1000) + canvasHeight/2];
+let objects_xArray = [mapMetersToPixels(0.5,meterBaseline,pixelBaseline) + canvasWidth/2, 
+                     -mapMetersToPixels(1.75,meterBaseline,pixelBaseline) + canvasWidth/2];
+let objects_yArray = [mapMetersToPixels(0.0,meterBaseline,pixelBaseline) + canvasHeight/2, 
+                     mapMetersToPixels(0.45,meterBaseline,pixelBaseline) + canvasHeight/2];
 
 
 let frameCounter = 0; // what is this for ? 
@@ -86,6 +90,11 @@ function setWall_Limit_Dist(v) {
     document.getElementById('WallLimitDist').innerText = parseFloat(wallLimitDistance).toFixed(4);
 }
 
+function setCritical_Limit_Dist(v) {
+    criticalDistance = linearMapping(0.05, 3, 0, 10000, v); // db linear Scale
+    console.log(v);
+    document.getElementById('CriticalLimitDist').innerText = parseFloat(criticalDistance).toFixed(4);
+}
 
 function setExpMapFactor_PlaybackRate(v) {
     expMappingFactor_playbackRate = linearMapping(0.01, 15.0, 0, 10000, v); // db linear Scale
@@ -446,7 +455,6 @@ function doSonification(received_msg) {
 
 // GRAPHICS STUFF CANVAS FINALLY STARTS! 
 
-
 function setup() {
     createCanvas(canvasWidth, canvasHeight);
     // player = new Player(width / 2, height / 2, squareSize);
@@ -508,7 +516,7 @@ function draw() {
         frameCounter = 0;
     }
 
-    player.updateSpeed(mapMetersToPixels(playerSpeed,6,1000));
+    player.updateSpeed(mapMetersToPixels(playerSpeed,meterBaseline,pixelBaseline));
 
     player.update();
     player.display();
@@ -534,7 +542,7 @@ function draw() {
     for (let i = 0; i < objects['object'].length; i++) {
         let objMessage = {};
         let d = dist(player.x, player.y, objects['object'][i].x, objects['object'][i].y);
-        // console.log(mapPixelsToMeters(d,6,1000));
+        // console.log(mapPixelsToMeters(d,meterBaseline,pixelBaseline));
 
         objMessage['unique_id'] = objects['unique_id'][i];
         objMessage['ros_timestamp'] = JSON.stringify(Date.now());
@@ -546,7 +554,7 @@ function draw() {
                          [0,0,0,1]];
 
         let center_3d_new_2 = [0,0,0];      
-        let center_3d_sel_2 = [mapPixelsToMeters(player.x,6,1000),mapPixelsToMeters(player.y,6,1000),0,1];
+        let center_3d_sel_2 = [mapPixelsToMeters(player.x,meterBaseline,pixelBaseline),mapPixelsToMeters(player.y,meterBaseline,pixelBaseline),0,1];
         // Applying the rotation from map to camera ! 
         center_3d_new_2[0] = T_map_cam[0][0] * center_3d_sel_2[0] + T_map_cam[0][1] * center_3d_sel_2[1] + T_map_cam[0][2] * center_3d_sel_2[2] + T_map_cam[0][3] * center_3d_sel_2[3];
         center_3d_new_2[1] = T_map_cam[1][0] * center_3d_sel_2[0] + T_map_cam[1][1] * center_3d_sel_2[1] + T_map_cam[1][2] * center_3d_sel_2[2] + T_map_cam[1][3] * center_3d_sel_2[3];
@@ -561,12 +569,12 @@ function draw() {
 
         objMessage['T_map_cam'] = JSON.stringify(T_map_cam);
         
-        objMessage['center_3d'] = JSON.stringify([mapPixelsToMeters(objects['object'][i].x,6,1000),
-                                                  mapPixelsToMeters(objects['object'][i].y,6,1000),
-                                                  mapPixelsToMeters(linearMapping(-1000,1000,1,100,objects['object'][i].size),6,1000)]);
-        objMessage['nearest_3d'] = JSON.stringify([mapPixelsToMeters(objects['object'][i].x,6,1000),
-                                                mapPixelsToMeters(objects['object'][i].y,6,1000),
-                                                mapPixelsToMeters(linearMapping(-1000,1000,1,100,objects['object'][i].size),6,1000)]);
+        objMessage['center_3d'] = JSON.stringify([mapPixelsToMeters(objects['object'][i].x,meterBaseline,pixelBaseline),
+                                                  mapPixelsToMeters(objects['object'][i].y,meterBaseline,pixelBaseline),
+                                                  mapPixelsToMeters(linearMapping(-1000,1000,1,100,objects['object'][i].size),meterBaseline,pixelBaseline)]);
+        objMessage['nearest_3d'] = JSON.stringify([mapPixelsToMeters(objects['object'][i].x,meterBaseline,pixelBaseline),
+                                                mapPixelsToMeters(objects['object'][i].y,meterBaseline,pixelBaseline),
+                                                mapPixelsToMeters(linearMapping(-1000,1000,1,100,objects['object'][i].size),meterBaseline,pixelBaseline)]);
         objMessage['type'] = 'obstacle';
 
         sonificationMessage[countSonificationEntries] = objMessage;
@@ -596,7 +604,7 @@ function draw() {
                          [0,0,0,1]];
 
         let center_3d_new_2 = [0,0,0];      
-        let center_3d_sel_2 = [mapPixelsToMeters(player.x,6,1000),mapPixelsToMeters(player.y,6,1000),0,1];
+        let center_3d_sel_2 = [mapPixelsToMeters(player.x,meterBaseline,pixelBaseline),mapPixelsToMeters(player.y,meterBaseline,pixelBaseline),0,1];
         // Applying the rotation from map to camera ! 
         center_3d_new_2[0] = T_map_cam[0][0] * center_3d_sel_2[0] + T_map_cam[0][1] * center_3d_sel_2[1] + T_map_cam[0][2] * center_3d_sel_2[2] + T_map_cam[0][3] * center_3d_sel_2[3];
         center_3d_new_2[1] = T_map_cam[1][0] * center_3d_sel_2[0] + T_map_cam[1][1] * center_3d_sel_2[1] + T_map_cam[1][2] * center_3d_sel_2[2] + T_map_cam[1][3] * center_3d_sel_2[3];
@@ -610,11 +618,11 @@ function draw() {
 
         wallMessage['T_map_cam'] = JSON.stringify(T_map_cam);
 
-        wallMessage['center_3d'] = JSON.stringify([mapPixelsToMeters(closestPoint.x,6,1000),
-                                                mapPixelsToMeters(closestPoint.y,6,1000),
+        wallMessage['center_3d'] = JSON.stringify([mapPixelsToMeters(closestPoint.x,meterBaseline,pixelBaseline),
+                                                mapPixelsToMeters(closestPoint.y,meterBaseline,pixelBaseline),
                                                 0]);
-        wallMessage['nearest_3d'] = JSON.stringify([mapPixelsToMeters(closestPoint.x,6,1000),
-                                                mapPixelsToMeters(closestPoint.y,6,1000),
+        wallMessage['nearest_3d'] = JSON.stringify([mapPixelsToMeters(closestPoint.x,meterBaseline,pixelBaseline),
+                                                mapPixelsToMeters(closestPoint.y,meterBaseline,pixelBaseline),
                                                 0]);
         wallMessage['type'] = 'wall';
 
@@ -733,7 +741,7 @@ class Player {
         this.x = x;
         this.y = y;
         this.size = size;
-        this.speed = mapMetersToPixels(playerSpeed,6,1000)/fr; // need to divide by frame rate..
+        this.speed = mapMetersToPixels(playerSpeed,meterBaseline,pixelBaseline)/fr; // need to divide by frame rate..
 
         ;
     }
@@ -808,13 +816,13 @@ class Player {
     checkCollision_object(object, player, index) {
         let d = dist(this.x, this.y, object.x, object.y);
         // console.log(d);
-        // console.log(mapPixelsToMeters(d,6,1000) );
-        if (mapPixelsToMeters(d,6,1000) < obstacleLimitDistance) {
+        // console.log(mapPixelsToMeters(d,meterBaseline,pixelBaseline) );
+        if (mapPixelsToMeters(d,meterBaseline,pixelBaseline) < obstacleLimitDistance) {
             // console.log(index);
             if (sonifiedObjects[index] instanceof samplerLoopSonification) {
 
                 sonifiedObjects[index].expMappingFactor_playbackRate = expMappingFactor_playbackRate;
-                sonifiedObjects[index].setPlaybackRate(d, [mapMetersToPixels(0.01,6,1000), mapMetersToPixels(1.5,6,1000)]);
+                sonifiedObjects[index].setPlaybackRate(d, [mapMetersToPixels(0.01,meterBaseline,pixelBaseline), mapMetersToPixels(1.5,meterBaseline,pixelBaseline)]);
 
                 let xObj_rel_to_player = object.x - player.x;
                 let yObj_rel_to_player = object.y - player.y;
@@ -835,14 +843,14 @@ class Player {
                 // yObj_rel_to_player_rot = yObj_rel_to_player_rot / canvasHeight;
 
                 sonifiedObjects[index].panning_3d_point = [mapPixelsToMeters(yObj_rel_to_player_rot, 6, 1000),
-                    mapPixelsToMeters(linearMapping(-1000,1000,1,100,object.size),6,1000),
-                    mapPixelsToMeters(-xObj_rel_to_player_rot,6,1000)];
+                    mapPixelsToMeters(linearMapping(-1000,1000,1,100,object.size),meterBaseline,pixelBaseline),
+                    mapPixelsToMeters(-xObj_rel_to_player_rot,meterBaseline,pixelBaseline)];
                     
                 sonifiedObjects[index].panning_3d_point_raw = [yObj_rel_to_player_rot,
                     linearMapping(-5,5,1,100,object.size),
                     -xObj_rel_to_player_rot];
                                         
-                sonifiedObjects[index].distance = mapPixelsToMeters(d,6,1000);
+                sonifiedObjects[index].distance = mapPixelsToMeters(d,meterBaseline,pixelBaseline);
 
                 // console.log(sonifiedObjects[index].panning_3d_point_raw);
                 // console.log(sonifiedObjects[index].panning_3d_point);
@@ -854,8 +862,8 @@ class Player {
     
 
                 sonifiedObjects[index].panner.setPosition(mapPixelsToMeters(yObj_rel_to_player_rot, 6, 1000),
-                mapPixelsToMeters(linearMapping(-5,5,1,100,object.size),6,1000),
-                mapPixelsToMeters(-xObj_rel_to_player_rot,6,1000)); // the panner is flipped compared to the screen.. MEH
+                mapPixelsToMeters(linearMapping(-5,5,1,100,object.size),meterBaseline,pixelBaseline),
+                mapPixelsToMeters(-xObj_rel_to_player_rot,meterBaseline,pixelBaseline)); // the panner is flipped compared to the screen.. MEH
     
 
                 // if (index == 0){
@@ -870,7 +878,7 @@ class Player {
                     console.log('here!');
                 }
             }
-        } else if (mapPixelsToMeters(d,6,1000) > obstacleLimitDistance) {
+        } else if (mapPixelsToMeters(d,meterBaseline,pixelBaseline) > obstacleLimitDistance) {
             if (sonifiedObjects[index] instanceof samplerLoopSonification) {
                 console.log('stopping!');
                 sonifiedObjects[index].stopLoop(); // start the synthSonification loop
@@ -909,12 +917,12 @@ class Player {
         //     console.log(d);    
         // }
 
-        if (mapPixelsToMeters(d,6,1000) < wallLimitDistance) {
-        // if (mapPixelsToMeters(d,6,1000) < wallLimitDistance*(-1)) {
+        if (mapPixelsToMeters(d,meterBaseline,pixelBaseline) < wallLimitDistance) {
+        // if (mapPixelsToMeters(d,meterBaseline,pixelBaseline) < wallLimitDistance*(-1)) {
                 // console.log(index);
             if (sonifiedObjects[index] instanceof droneSonification) {
                 sonifiedObjects[index].expMappingFactor_harmonicity = expMappingFactor_harmonicity;
-                sonifiedObjects[index].setHarmonicity(mapPixelsToMeters(d,6,1000), [0.2,0.7]);
+                sonifiedObjects[index].setHarmonicity(mapPixelsToMeters(d,meterBaseline,pixelBaseline), [0.2,0.7]);
 
                 let xObj_rel_to_player = closestPoint.x - player.x;
                 let yObj_rel_to_player = closestPoint.y - player.y;
@@ -933,9 +941,9 @@ class Player {
                 //     xObj_rel_to_player_rot, 
                 //     linearMapping(-5,5,1,100,object.size)); // the panner is flipped compared to the screen.. MEH
 
-                sonifiedObjects[index].panner.setPosition(mapPixelsToMeters(yObj_rel_to_player_rot,6,1000),
+                sonifiedObjects[index].panner.setPosition(mapPixelsToMeters(yObj_rel_to_player_rot,meterBaseline,pixelBaseline),
                     0, // this is the elevation..
-                    mapPixelsToMeters(-xObj_rel_to_player_rot,6,1000)); // the panner is flipped compared to the screen.. MEH
+                    mapPixelsToMeters(-xObj_rel_to_player_rot,meterBaseline,pixelBaseline)); // the panner is flipped compared to the screen.. MEH
     
 
                 sonifiedObjects[index].envelope.triggerAttack();
